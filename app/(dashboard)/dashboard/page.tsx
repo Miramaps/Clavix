@@ -19,12 +19,16 @@ import {
   ResponsiveContainer,
   Legend 
 } from 'recharts';
+import { useCountry } from '@/contexts/country-context';
+import { CountrySelector } from '@/components/country-selector';
 
 export default function DashboardPage() {
+  const { selectedCountry, country } = useCountry();
+  
   const { data, isLoading, error } = useQuery({
-    queryKey: ['dashboard-stats'],
+    queryKey: ['dashboard-stats', selectedCountry],
     queryFn: async () => {
-      const res = await fetch('/api/dashboard/stats');
+      const res = await fetch(`/api/dashboard/stats?country=${selectedCountry}`);
       if (res.status === 401) {
         window.location.href = '/login';
         throw new Error('Unauthorized');
@@ -95,11 +99,14 @@ export default function DashboardPage() {
 
   return (
     <div className="p-8 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Oversikt</h1>
-        <p className="text-muted-foreground">
-          Oversikt over norsk bedriftsintelligens
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Oversikt</h1>
+          <p className="text-muted-foreground">
+            {country.flag} Bedriftsintelligens for {country.name}
+          </p>
+        </div>
+        <CountrySelector />
       </div>
 
       {/* Main Stats */}
