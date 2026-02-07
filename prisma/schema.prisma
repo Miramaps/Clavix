@@ -17,10 +17,21 @@ model User {
   emailVerified DateTime?
   password      String
   image         String?
+  role          String    @default("user") // admin, manager, user, viewer
+  isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
   sessions      Session[]
+  
+  // CRM Relations
+  deals         Deal[]
+  activities    Activity[]
+  notes         Note[]
+  campaigns     EmailCampaign[]
+  ownedTeams    Team[]    @relation("TeamOwner")
+  teamMemberships TeamMember[]
+  comments      Comment[]
 }
 
 model Account {
@@ -94,6 +105,10 @@ model Company {
   subEntities            SubEntity[]          @relation("ParentCompany")
   contactEnrichments     ContactEnrichment[]
   scoreExplanations      ScoreExplanation[]
+  deals                  Deal[]
+  activities             Activity[]
+  campaignEmails         CampaignEmail[]
+  comments               Comment[]
 
   @@index([orgnr])
   @@index([status])
@@ -158,19 +173,24 @@ model SyncJob {
 }
 
 model ContactEnrichment {
-  id          String   @id @default(cuid())
-  companyId   String
-  provider    String   // e.g., "manual", "hunter", "apollo"
-  contactName String?
-  title       String?
-  phone       String?
-  email       String?
-  confidence  Float?   // 0-1
-  createdAt   DateTime @default(now())
-  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  id           String              @id @default(cuid())
+  companyId    String
+  company      Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  providerId   String?
+  provider     EnrichmentProvider? @relation(fields: [providerId], references: [id])
+  providerName String              // "hunter", "apollo", etc.
+  contactName  String?
+  title        String?
+  phone        String?
+  email        String?
+  linkedin     String?
+  confidence   Float?              // 0-1
+  rawData      Json?
+  createdAt    DateTime            @default(now())
 
   @@index([companyId])
-  @@index([provider])
+  @@index([providerId])
+  @@index([providerName])
 }
 
 model ScoreExplanation {
@@ -210,5 +230,271 @@ model AuditLog {
 
   @@index([userId])
   @@index([action])
+  @@index([createdAt])
+}
+
+// ============================================
+// PIPELINE MANAGEMENT (CRM)
+// ============================================
+
+model PipelineStage {
+  id          String   @id @default(cuid())
+  name        String   // "Ny lead", "Kvalifisert", "Presentasjon", "Forhandling", "Vunnet", "Tapt"
+  description String?
+  color       String?  // Hex color for UI
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  probability Int      @default(0) // 0-100% win probability
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  deals       Deal[]
+
+  @@index([order])
+  @@index([isActive])
+}
+
+model Deal {
+  id              String        @id @default(cuid())
+  companyId       String
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  title           String
+  description     String?
+  value           Float?        // Deal value in NOK
+  currency        String        @default("NOK")
+  
+  stageId         String
+  stage           PipelineStage @relation(fields: [stageId], references: [id])
+  
+  ownerId         String?
+  owner           User?         @relation(fields: [ownerId], references: [id])
+  
+  priority        String        @default("medium") // low, medium, high, urgent
+  status          String        @default("open") // open, won, lost, abandoned
+  
+  expectedCloseDate DateTime?
+  actualCloseDate   DateTime?
+  
+  lostReason      String?
+  wonReason       String?
+  
+  contactPerson   String?
+  contactEmail    String?
+  contactPhone    String?
+  
+  tags            String[]
+  customFields    Json?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  activities      Activity[]
+  notes           Note[]
+
+  @@index([companyId])
+  @@index([stageId])
+  @@index([ownerId])
+  @@index([status])
+  @@index([priority])
+  @@index([expectedCloseDate])
+  @@index([createdAt])
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  dealId      String?
+  deal        Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  
+  companyId   String?
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  type        String   // call, email, meeting, task, note, demo
+  title       String
+  description String?
+  
+  status      String   @default("pending") // pending, completed, cancelled
+  outcome     String?  // positive, neutral, negative
+  
+  dueDate     DateTime?
+  completedAt DateTime?
+  
+  duration    Int?     // minutes
+  
+  metadata    Json?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([dealId])
+  @@index([companyId])
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([dueDate])
+  @@index([createdAt])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  dealId    String
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  content   String   @db.Text
+  isPinned  Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([dealId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ============================================
+// CONTACT ENRICHMENT
+// ============================================
+
+model EnrichmentProvider {
+  id          String   @id @default(cuid())
+  name        String   @unique // "hunter", "apollo", "clearbit", etc.
+  apiKey      String?  // Encrypted
+  isActive    Boolean  @default(true)
+  config      Json?
+  
+  enrichments ContactEnrichment[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ============================================
+// EMAIL CAMPAIGNS
+// ============================================
+
+model EmailCampaign {
+  id            String   @id @default(cuid())
+  name          String
+  subject       String
+  body          String   @db.Text
+  
+  status        String   @default("draft") // draft, scheduled, sending, sent, paused
+  
+  senderId      String
+  sender        User     @relation(fields: [senderId], references: [id])
+  
+  targetFilters Json?    // Filters for selecting companies
+  
+  scheduledFor  DateTime?
+  sentAt        DateTime?
+  
+  totalSent     Int      @default(0)
+  totalOpened   Int      @default(0)
+  totalClicked  Int      @default(0)
+  totalReplied  Int      @default(0)
+  totalBounced  Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  emails        CampaignEmail[]
+
+  @@index([status])
+  @@index([senderId])
+  @@index([scheduledFor])
+  @@index([createdAt])
+}
+
+model CampaignEmail {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  to          String
+  status      String   @default("pending") // pending, sent, opened, clicked, replied, bounced, failed
+  
+  sentAt      DateTime?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+  repliedAt   DateTime?
+  bouncedAt   DateTime?
+  
+  metadata    Json?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([campaignId])
+  @@index([companyId])
+  @@index([status])
+  @@index([sentAt])
+}
+
+// ============================================
+// TEAM COLLABORATION
+// ============================================
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  
+  ownerId     String
+  owner       User     @relation("TeamOwner", fields: [ownerId], references: [id])
+  
+  members     TeamMember[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ownerId])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  role      String   @default("member") // owner, admin, member, viewer
+  
+  joinedAt  DateTime @default(now())
+  
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  companyId   String?
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  content     String   @db.Text
+  
+  parentId    String?
+  parent      Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[] @relation("CommentReplies")
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([parentId])
   @@index([createdAt])
 }
