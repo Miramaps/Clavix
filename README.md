@@ -22,24 +22,8 @@ En produksjonsklar MVP som henter, indekserer og scorer norske bedrifter fra Br�
 - ✅ **Fast Search** - Real-time filtering and segmentation
 - ✅ **Export** - CSV/JSON export with scoring data
 - ✅ **Contact Enrichment** - Hunter.io + Apollo.io integration
-
-### 🆕 Nordic Expansion
-- ✅ **Sverige** - Bolagsverket API integration (requires API key)
-- ✅ **Danmark** - CVR API integration (free!)
-- ✅ **Finland** - YTJ API integration (free!)
-- ✅ **Multi-country sync** - Unified Nordic company database
-
-### 🆕 Custom Scoring Models
-- ✅ **User-defined models** - Create custom scoring configurations
-- ✅ **Flexible weights** - Adjust signal weights per use case
-- ✅ **Multiple models** - Enterprise, SMB, or custom profiles
-- ✅ **Condition-based scoring** - Write custom conditions for each signal
-
-### 🆕 Integrations
-- ✅ **Slack** - Real-time notifications for deals & high-score leads
-- ✅ **Microsoft Teams** - Push updates to Teams channels
-- ✅ **Webhooks** - Generic webhook support for custom integrations
-- ✅ **Event system** - Subscribe to: deal.created, deal.won, lead.high_score, etc.
+- ✅ **Custom Scoring Models** - User-defined scoring configurations
+- ✅ **Integrations** - Slack, Teams, Webhooks
 
 ### Full CRM Features
 - ✅ **Pipeline Management** - Kanban-style deal tracking

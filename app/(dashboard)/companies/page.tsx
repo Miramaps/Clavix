@@ -7,11 +7,8 @@ import { CompanyDetailDrawer } from './company-detail-drawer';
 import { CompaniesFilters } from './companies-filters';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Download } from 'lucide-react';
-import { CountrySelector } from '@/components/country-selector';
-import { useCountry } from '@/contexts/country-context';
 
 export default function CompaniesPage() {
-  const { selectedCountry, country } = useCountry();
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     page: 1,
@@ -22,7 +19,7 @@ export default function CompaniesPage() {
   });
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['companies', filters, selectedCountry],
+    queryKey: ['companies', filters],
     queryFn: async () => {
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
@@ -30,7 +27,6 @@ export default function CompaniesPage() {
           params.set(key, value.toString());
         }
       });
-      params.set('country', selectedCountry);
       const res = await fetch(`/api/companies?${params.toString()}`);
       if (res.status === 401) {
         window.location.href = '/login';
@@ -67,17 +63,10 @@ export default function CompaniesPage() {
 
   const handleRunSync = async () => {
     try {
-      // Use different API based on selected country
-      const isNorway = selectedCountry === 'NO';
-      const url = isNorway ? '/api/sync' : '/api/nordic/sync';
-      const body = isNorway 
-        ? { type: 'incremental', generateAI: false }
-        : { country: selectedCountry, limit: 500 };
-      
-      const res = await fetch(url, {
+      const res = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ type: 'incremental', generateAI: false }),
       });
       
       if (res.status === 401) {
@@ -92,7 +81,7 @@ export default function CompaniesPage() {
       }
       
       const result = await res.json();
-      alert(`Synkronisering startet for ${country.name}! ${result.message || ''}`);
+      alert(`Synkronisering startet for Norge! ${result.message || ''}`);
       refetch();
     } catch (error) {
       console.error('Sync failed:', error);
@@ -104,14 +93,11 @@ export default function CompaniesPage() {
     <div className="flex h-full flex-col">
       <div className="border-b">
         <div className="flex items-center justify-between p-6">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Bedrifter</h1>
-              <p className="text-muted-foreground">
-                {data?.meta?.total || 0} bedrifter fra {country.name} indeksert
-              </p>
-            </div>
-            <CountrySelector />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Bedrifter</h1>
+            <p className="text-muted-foreground">
+              {data?.meta?.total || 0} norske bedrifter indeksert
+            </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExport}>

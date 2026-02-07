@@ -10,19 +10,11 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    const { searchParams } = new URL(request.url);
-    const country = searchParams.get('country') || 'NO';
-    
     // Get date ranges
     const now = new Date();
     const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-    // Choose the correct model based on country
-    const isNorway = country === 'NO';
-    const model = isNorway ? db.company : db.companyNordic;
-    const baseWhere = isNorway ? {} : { country };
 
     const [
       totalCompanies,
@@ -42,34 +34,30 @@ export async function GET(request: NextRequest) {
       companiesWithPhone,
       dailyNewCompanies,
     ] = await Promise.all([
-      model.count({ where: baseWhere }),
-      model.count({ where: { ...baseWhere, status: 'active' } }),
-      model.count({
+      db.company.count(),
+      db.company.count({ where: { status: 'active' } }),
+      db.company.count({
         where: {
-          ...baseWhere,
           overallLeadScore: { gte: 75 },
           status: 'active',
         },
       }),
-      model.count({
+      db.company.count({
         where: {
-          ...baseWhere,
           overallLeadScore: { gte: 50, lt: 75 },
           status: 'active',
         },
       }),
-      model.count({
+      db.company.count({
         where: {
-          ...baseWhere,
           lastSeenAt: {
             gte: last7Days,
           },
         },
       }),
-      model.groupBy({
+      db.company.groupBy({
         by: ['industryDescription'],
         where: {
-          ...baseWhere,
           industryDescription: { not: null },
           status: 'active',
         },
@@ -89,28 +77,24 @@ export async function GET(request: NextRequest) {
         orderBy: { finishedAt: 'desc' },
         take: 30,
       }),
-      model.count({
+      db.company.count({
         where: {
-          ...baseWhere,
           createdAt: { gte: last24Hours },
         },
       }),
-      model.count({
+      db.company.count({
         where: {
-          ...baseWhere,
           createdAt: { gte: last7Days },
         },
       }),
-      model.count({
+      db.company.count({
         where: {
-          ...baseWhere,
           createdAt: { gte: last30Days },
         },
       }),
-      model.groupBy({
+      db.company.groupBy({
         by: ['county'],
         where: {
-          ...baseWhere,
           county: { not: null },
           status: 'active',
         },
@@ -122,10 +106,9 @@ export async function GET(request: NextRequest) {
         },
         take: 10,
       }),
-      model.groupBy({
+      db.company.groupBy({
         by: ['organizationFormCode'],
         where: {
-          ...baseWhere,
           organizationFormCode: { not: null },
           status: 'active',
         },
@@ -137,7 +120,7 @@ export async function GET(request: NextRequest) {
         },
         take: 8,
       }),
-      isNorway ? db.$queryRaw`
+      db.$queryRaw`
         SELECT 
           range,
           COUNT(*)::int as count,
@@ -179,8 +162,8 @@ export async function GET(request: NextRequest) {
               ELSE 'Ukjent'
             END as range,
             "overallLeadScore" as score
-          FROM "CompanyNordic"
-          WHERE "status" = 'active' AND "employeeCount" IS NOT NULL AND "country" = ${country}
+          FROM "Company"
+          WHERE "status" = 'active' AND "employeeCount" IS NOT NULL
         ) as subquery
         GROUP BY range
         ORDER BY 
@@ -192,35 +175,25 @@ export async function GET(request: NextRequest) {
             ELSE 5
           END
       ` as any[],
-      model.count({
+      db.company.count({
         where: {
-          ...baseWhere,
           website: { not: null },
           status: 'active',
         },
       }),
-      model.count({
+      db.company.count({
         where: {
-          ...baseWhere,
           phone: { not: null },
           status: 'active',
         },
       }),
       // Get daily new companies for last 30 days
-      isNorway ? db.$queryRaw`
+      db.$queryRaw`
         SELECT 
           DATE("createdAt") as date,
           COUNT(*)::int as count
         FROM "Company"
         WHERE "createdAt" >= ${last30Days}::timestamp
-        GROUP BY DATE("createdAt")
-        ORDER BY date DESC
-      ` : db.$queryRaw`
-        SELECT 
-          DATE("createdAt") as date,
-          COUNT(*)::int as count
-        FROM "CompanyNordic"
-        WHERE "createdAt" >= ${last30Days}::timestamp AND "country" = ${country}
         GROUP BY DATE("createdAt")
         ORDER BY date DESC
       ` as any[],

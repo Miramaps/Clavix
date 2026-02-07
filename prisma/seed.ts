@@ -249,47 +249,6 @@ async function main() {
   }
 
   // ============================================
-  // SEED NORDIC REGISTRIES
-  // ============================================
-  console.log('\n🌍 Seeding Nordic registries...');
-
-  const registries = [
-    {
-      country: 'NO',
-      registryName: 'Brønnøysundregistrene',
-      apiBaseUrl: 'https://data.brreg.no',
-      isActive: true,
-    },
-    {
-      country: 'SE',
-      registryName: 'Bolagsverket',
-      apiBaseUrl: 'https://api.bolagsverket.se',
-      isActive: false, // Requires API key
-    },
-    {
-      country: 'DK',
-      registryName: 'CVR (Centrale Virksomhedsregister)',
-      apiBaseUrl: 'https://cvrapi.dk',
-      isActive: true,
-    },
-    {
-      country: 'FI',
-      registryName: 'YTJ (Yritys- ja yhteisötietojärjestelmä)',
-      apiBaseUrl: 'https://avoindata.prh.fi/bis/v1',
-      isActive: true,
-    },
-  ];
-
-  for (const registry of registries) {
-    await prisma.companyRegistry.upsert({
-      where: { country: registry.country },
-      update: registry,
-      create: registry,
-    });
-    console.log(`✓ Opprettet registry: ${registry.registryName} (${registry.country})`);
-  }
-
-  // ============================================
   // SEED SAMPLE INTEGRATION (for testing)
   // ============================================
   console.log('\n🔗 Seeding sample integration...');

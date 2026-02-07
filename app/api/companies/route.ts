@@ -12,9 +12,6 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     
-    // Country selection
-    const country = searchParams.get('country') || 'NO';
-    
     // Pagination
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -56,79 +53,38 @@ export async function GET(request: NextRequest) {
     if (organizationForm) where.organizationFormCode = organizationForm;
     if (createdAfter) where.createdAt = { gte: new Date(createdAfter) };
     
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { orgnr: { contains: search } },
+      ];
+    }
+    if (updatedSince) {
+      where.lastSeenAt = { gte: new Date(updatedSince) };
+    }
+    
     // Sort
     const sortBy = searchParams.get('sortBy') || 'overallLeadScore';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
     
-    let companies, total;
-    
-    // Query based on country
-    if (country === 'NO') {
-      // Norwegian companies from Company table
-      if (search) {
-        where.OR = [
-          { name: { contains: search, mode: 'insensitive' } },
-          { orgnr: { contains: search } },
-        ];
-      }
-      if (updatedSince) {
-        where.lastSeenAt = { gte: new Date(updatedSince) };
-      }
-      
-      [companies, total] = await Promise.all([
-        db.company.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy: { [sortBy]: sortOrder },
-          include: {
-            subEntities: true,
-            _count: {
-              select: {
-                roles: true,
-                subEntities: true,
-              },
+    const [companies, total] = await Promise.all([
+      db.company.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { [sortBy]: sortOrder },
+        include: {
+          subEntities: true,
+          _count: {
+            select: {
+              roles: true,
+              subEntities: true,
             },
           },
-        }),
-        db.company.count({ where }),
-      ]);
-    } else {
-      // Nordic companies from CompanyNordic table
-      where.country = country;
-      if (search) {
-        where.OR = [
-          { name: { contains: search, mode: 'insensitive' } },
-          { registrationNumber: { contains: search } },
-        ];
-      }
-      if (updatedSince) {
-        where.lastSeenAt = { gte: new Date(updatedSince) };
-      }
-      
-      [companies, total] = await Promise.all([
-        db.companyNordic.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy: { [sortBy]: sortOrder },
-          include: {
-            registry: true,
-          },
-        }),
-        db.companyNordic.count({ where }),
-      ]);
-      
-      // Normalize CompanyNordic to look like Company for frontend
-      companies = companies.map((c: any) => ({
-        ...c,
-        orgnr: c.registrationNumber,
-        _count: {
-          roles: 0,
-          subEntities: 0,
         },
-      }));
-    }
+      }),
+      db.company.count({ where }),
+    ]);
     
     return NextResponse.json({
       data: companies,
