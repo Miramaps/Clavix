@@ -145,6 +145,171 @@ async function main() {
     console.log(`✓ Created filter preset: ${preset.name}`);
   }
 
+  // ============================================
+  // SEED CUSTOM SCORING MODELS
+  // ============================================
+  console.log('\n📊 Seeding custom scoring models...');
+
+  const scoringModels = [
+    {
+      id: 'default-standard',
+      userId: null,
+      name: 'Standard CLAVIX-modell',
+      description: 'Standard score-modell for alle bransjer',
+      isActive: false,
+      isDefault: true,
+      config: {
+        signals: [
+          {
+            signal: 'company_active',
+            weight: 20,
+            condition: "status === 'active'",
+            reason: 'Bedriften er aktivt i drift',
+          },
+          {
+            signal: 'optimal_employee_count',
+            weight: 15,
+            condition: 'employeeCount >= 5 && employeeCount <= 250',
+            reason: 'Ideell SMB-størrelse',
+          },
+          {
+            signal: 'has_website',
+            weight: 8,
+            condition: 'hasWebsite === true',
+            reason: 'Har nettilstedeværelse',
+          },
+          {
+            signal: 'has_contact_phone',
+            weight: 8,
+            condition: 'hasPhone === true',
+            reason: 'Kontakttelefon tilgjengelig',
+          },
+          {
+            signal: 'has_roles_data',
+            weight: 5,
+            condition: 'hasRolesData === true',
+            reason: 'Ledelse/beslutningstakere identifisert',
+          },
+        ],
+        thresholds: {
+          highScore: 75,
+          goodScore: 50,
+        },
+      },
+    },
+    {
+      id: 'default-enterprise',
+      userId: null,
+      name: 'Enterprise-modell',
+      description: 'Fokuserer på større bedrifter',
+      isActive: false,
+      isDefault: false,
+      config: {
+        signals: [
+          {
+            signal: 'company_active',
+            weight: 20,
+            condition: "status === 'active'",
+            reason: 'Bedriften er aktivt i drift',
+          },
+          {
+            signal: 'large_company',
+            weight: 25,
+            condition: 'employeeCount >= 250',
+            reason: 'Enterprise-størrelse',
+          },
+          {
+            signal: 'has_website',
+            weight: 5,
+            condition: 'hasWebsite === true',
+            reason: 'Har nettilstedeværelse',
+          },
+          {
+            signal: 'has_roles_data',
+            weight: 10,
+            condition: 'hasRolesData === true',
+            reason: 'Ledelse/beslutningstakere identifisert',
+          },
+        ],
+        thresholds: {
+          highScore: 70,
+          goodScore: 45,
+        },
+      },
+    },
+  ];
+
+  for (const model of scoringModels) {
+    await prisma.scoringModel.upsert({
+      where: { id: model.id },
+      update: model,
+      create: model,
+    });
+    console.log(`✓ Opprettet scoring-modell: ${model.name}`);
+  }
+
+  // ============================================
+  // SEED NORDIC REGISTRIES
+  // ============================================
+  console.log('\n🌍 Seeding Nordic registries...');
+
+  const registries = [
+    {
+      country: 'NO',
+      registryName: 'Brønnøysundregistrene',
+      apiBaseUrl: 'https://data.brreg.no',
+      isActive: true,
+    },
+    {
+      country: 'SE',
+      registryName: 'Bolagsverket',
+      apiBaseUrl: 'https://api.bolagsverket.se',
+      isActive: false, // Requires API key
+    },
+    {
+      country: 'DK',
+      registryName: 'CVR (Centrale Virksomhedsregister)',
+      apiBaseUrl: 'https://cvrapi.dk',
+      isActive: true,
+    },
+    {
+      country: 'FI',
+      registryName: 'YTJ (Yritys- ja yhteisötietojärjestelmä)',
+      apiBaseUrl: 'https://avoindata.prh.fi/bis/v1',
+      isActive: true,
+    },
+  ];
+
+  for (const registry of registries) {
+    await prisma.companyRegistry.upsert({
+      where: { country: registry.country },
+      update: registry,
+      create: registry,
+    });
+    console.log(`✓ Opprettet registry: ${registry.registryName} (${registry.country})`);
+  }
+
+  // ============================================
+  // SEED SAMPLE INTEGRATION (for testing)
+  // ============================================
+  console.log('\n🔗 Seeding sample integration...');
+
+  await prisma.integration.upsert({
+    where: { id: 'sample-webhook' },
+    create: {
+      id: 'sample-webhook',
+      type: 'webhook',
+      name: 'Sample Webhook (Test)',
+      isActive: false,
+      config: {
+        webhookUrl: 'https://webhook.site/unique-url',
+      },
+      events: ['deal.created', 'deal.won', 'lead.high_score'],
+    },
+    update: {},
+  });
+  console.log('✓ Opprettet sample integration');
+
   console.log('\n🎉 Seeding completed!');
 }
 

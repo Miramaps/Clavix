@@ -18,10 +18,36 @@ En produksjonsklar MVP som henter, indekserer og scorer norske bedrifter fra Br�
 ### Core Functionality
 - ✅ **Data Ingestion** - Automated sync from Brønnøysundregistrene APIs
 - ✅ **Lead Scoring** - Intelligent scoring engine with explainability (0-100 scale)
-- ✅ **AI Summaries** - Auto-generated company insights and sales angles
+- ✅ **AI Summaries** - Auto-generated company insights and sales angles (på norsk!)
 - ✅ **Fast Search** - Real-time filtering and segmentation
 - ✅ **Export** - CSV/JSON export with scoring data
-- ✅ **Contact Enrichment** - Extensible framework for third-party data providers
+- ✅ **Contact Enrichment** - Hunter.io + Apollo.io integration
+
+### 🆕 Nordic Expansion
+- ✅ **Sverige** - Bolagsverket API integration (requires API key)
+- ✅ **Danmark** - CVR API integration (free!)
+- ✅ **Finland** - YTJ API integration (free!)
+- ✅ **Multi-country sync** - Unified Nordic company database
+
+### 🆕 Custom Scoring Models
+- ✅ **User-defined models** - Create custom scoring configurations
+- ✅ **Flexible weights** - Adjust signal weights per use case
+- ✅ **Multiple models** - Enterprise, SMB, or custom profiles
+- ✅ **Condition-based scoring** - Write custom conditions for each signal
+
+### 🆕 Integrations
+- ✅ **Slack** - Real-time notifications for deals & high-score leads
+- ✅ **Microsoft Teams** - Push updates to Teams channels
+- ✅ **Webhooks** - Generic webhook support for custom integrations
+- ✅ **Event system** - Subscribe to: deal.created, deal.won, lead.high_score, etc.
+
+### Full CRM Features
+- ✅ **Pipeline Management** - Kanban-style deal tracking
+- ✅ **Activities** - Log calls, meetings, emails, demos
+- ✅ **Notes** - Team collaboration on deals
+- ✅ **Email Campaigns** - Send and track email outreach
+- ✅ **Advanced Analytics** - Charts, metrics, and insights
+- ✅ **Team Collaboration** - Multi-user support with roles
 
 ### Lead Scoring Signals
 The scoring engine evaluates companies based on:
