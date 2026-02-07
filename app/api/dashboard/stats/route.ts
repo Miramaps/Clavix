@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
           COUNT(*)::int as count,
           ROUND(AVG("overallLeadScore"))::int as avg_score
         FROM "Company"
-        WHERE status = 'active' AND "employeeCount" IS NOT NULL
+        WHERE "status" = 'active' AND "employeeCount" IS NOT NULL
         GROUP BY range
         ORDER BY 
           CASE range
@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
           DATE("createdAt") as date,
           COUNT(*)::int as count
         FROM "Company"
-        WHERE "createdAt" >= ${last30Days}
+        WHERE "createdAt" >= ${last30Days}::timestamp
         GROUP BY DATE("createdAt")
         ORDER BY date DESC
       ` as any[],
