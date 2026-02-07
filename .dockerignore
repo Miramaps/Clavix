@@ -1,0 +1,15 @@
+.git
+.gitignore
+README.md
+SETUP.md
+.env
+.env.local
+.next
+node_modules
+npm-debug.log
+.DS_Store
+*.md
+.vscode
+.idea
+coverage
+.nyc_output
