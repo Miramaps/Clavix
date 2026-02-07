@@ -5,7 +5,7 @@ import { generateCompanySummary, formatSummaryAsText } from '@/lib/ai/summary';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
   
@@ -14,8 +14,9 @@ export async function POST(
   }
   
   try {
+    const { id } = await params;
     const company = await db.company.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         roles: true,
         subEntities: true,
@@ -30,7 +31,7 @@ export async function POST(
     const summaryText = formatSummaryAsText(summary);
     
     const updated = await db.company.update({
-      where: { id: params.id },
+      where: { id },
       data: { aiSummary: summaryText },
     });
     

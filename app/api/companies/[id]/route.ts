@@ -6,7 +6,7 @@ import { generateCompanySummary, formatSummaryAsText } from '@/lib/ai/summary';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
   
@@ -15,8 +15,9 @@ export async function GET(
   }
   
   try {
+    const { id } = await params;
     const company = await db.company.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         roles: true,
         subEntities: true,
@@ -40,7 +41,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
   
@@ -49,10 +50,11 @@ export async function PATCH(
   }
   
   try {
+    const { id } = await params;
     const body = await request.json();
     
     const company = await db.company.update({
-      where: { id: params.id },
+      where: { id },
       data: body,
     });
     
