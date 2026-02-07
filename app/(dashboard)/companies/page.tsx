@@ -67,10 +67,17 @@ export default function CompaniesPage() {
 
   const handleRunSync = async () => {
     try {
-      const res = await fetch('/api/sync', {
+      // Use different API based on selected country
+      const isNorway = selectedCountry === 'NO';
+      const url = isNorway ? '/api/sync' : '/api/nordic/sync';
+      const body = isNorway 
+        ? { type: 'incremental', generateAI: false }
+        : { country: selectedCountry, limit: 500 };
+      
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'incremental', generateAI: false }),
+        body: JSON.stringify(body),
       });
       
       if (res.status === 401) {
@@ -81,10 +88,11 @@ export default function CompaniesPage() {
       
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || 'Synkronisering feilet');
+        throw new Error(error.message || error.error || 'Synkronisering feilet');
       }
       
-      alert('Synkronisering startet!');
+      const result = await res.json();
+      alert(`Synkronisering startet for ${country.name}! ${result.message || ''}`);
       refetch();
     } catch (error) {
       console.error('Sync failed:', error);

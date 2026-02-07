@@ -127,8 +127,11 @@ export class NordicSyncService {
         update: {},
       });
 
-      // Fetch companies
-      const response = await ytjClient.searchCompanies({ maxResults: limit });
+      // Fetch companies (use wildcard name search since API might require it)
+      const response = await ytjClient.searchCompanies({ 
+        name: '*', // Wildcard to get all companies
+        maxResults: limit 
+      });
       
       if (response.results) {
         for (const company of response.results) {

@@ -86,20 +86,16 @@ export class CVRClient {
     pageSize?: number;
   } = {}): Promise<CVRSearchResponse> {
     try {
-      const searchParams = new URLSearchParams();
-      
       if (params.cvr) {
         // Direct CVR lookup
         return await this.getCompany(params.cvr);
       }
 
-      if (params.query) searchParams.set('search', params.query);
-      if (params.page !== undefined) searchParams.set('page', params.page.toString());
-      if (params.pageSize !== undefined) searchParams.set('results_per_page', params.pageSize.toString());
-
-      const url = `${this.baseUrl}/api?${searchParams.toString()}`;
-      const response = await resilientFetch(url);
-      return response.json();
+      // NOTE: cvrapi.dk is a simple API that only supports single CVR lookups
+      // For bulk queries, use the official CVR API at data.virk.dk (requires more setup)
+      // For demo, we'll return empty results
+      console.warn('CVR API (cvrapi.dk) does not support bulk company search. Use official data.virk.dk API for production.');
+      return { hits: { hits: [], total: { value: 0 } } };
     } catch (error) {
       console.error('Error fetching Danish companies:', error);
       return { hits: { hits: [], total: { value: 0 } } };

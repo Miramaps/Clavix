@@ -45,7 +45,8 @@ async function resilientFetch(
       
       // Don't retry 4xx errors (except 429)
       if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text().catch(() => response.statusText);
+        throw new Error(`HTTP ${response.status}: ${errorText} (URL: ${url})`);
       }
       
       // Retry on 5xx or 429

@@ -505,11 +505,18 @@ async function getLastSuccessfulSync(type: string): Promise<Date> {
   });
   
   if (lastJob?.finishedAt) {
+    // Don't sync from dates less than 2 days ago (Brreg needs time to process)
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    
+    if (lastJob.finishedAt > twoDaysAgo) {
+      return twoDaysAgo;
+    }
     return lastJob.finishedAt;
   }
   
-  // Default to 1 day ago (safer for first sync)
+  // Default to 7 days ago (safer for first sync)
   const date = new Date();
-  date.setDate(date.getDate() - 1);
+  date.setDate(date.getDate() - 7);
   return date;
 }
