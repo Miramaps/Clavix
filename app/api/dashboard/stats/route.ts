@@ -147,33 +147,6 @@ export async function GET(request: NextRequest) {
             WHEN '251+' THEN 4
             ELSE 5
           END
-      ` : db.$queryRaw`
-        SELECT 
-          range,
-          COUNT(*)::int as count,
-          ROUND(AVG(score))::int as avg_score
-        FROM (
-          SELECT 
-            CASE
-              WHEN "employeeCount" BETWEEN 1 AND 10 THEN '1-10'
-              WHEN "employeeCount" BETWEEN 11 AND 50 THEN '11-50'
-              WHEN "employeeCount" BETWEEN 51 AND 250 THEN '51-250'
-              WHEN "employeeCount" > 250 THEN '251+'
-              ELSE 'Ukjent'
-            END as range,
-            "overallLeadScore" as score
-          FROM "Company"
-          WHERE "status" = 'active' AND "employeeCount" IS NOT NULL
-        ) as subquery
-        GROUP BY range
-        ORDER BY 
-          CASE range
-            WHEN '1-10' THEN 1
-            WHEN '11-50' THEN 2
-            WHEN '51-250' THEN 3
-            WHEN '251+' THEN 4
-            ELSE 5
-          END
       ` as any[],
       db.company.count({
         where: {
