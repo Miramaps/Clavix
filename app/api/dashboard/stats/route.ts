@@ -122,17 +122,22 @@ export async function GET(request: NextRequest) {
       }),
       db.$queryRaw`
         SELECT 
-          CASE
-            WHEN "employeeCount" BETWEEN 1 AND 10 THEN '1-10'
-            WHEN "employeeCount" BETWEEN 11 AND 50 THEN '11-50'
-            WHEN "employeeCount" BETWEEN 51 AND 250 THEN '51-250'
-            WHEN "employeeCount" > 250 THEN '251+'
-            ELSE 'Ukjent'
-          END as range,
+          range,
           COUNT(*)::int as count,
-          ROUND(AVG("overallLeadScore"))::int as avg_score
-        FROM "Company"
-        WHERE "status" = 'active' AND "employeeCount" IS NOT NULL
+          ROUND(AVG(score))::int as avg_score
+        FROM (
+          SELECT 
+            CASE
+              WHEN "employeeCount" BETWEEN 1 AND 10 THEN '1-10'
+              WHEN "employeeCount" BETWEEN 11 AND 50 THEN '11-50'
+              WHEN "employeeCount" BETWEEN 51 AND 250 THEN '51-250'
+              WHEN "employeeCount" > 250 THEN '251+'
+              ELSE 'Ukjent'
+            END as range,
+            "overallLeadScore" as score
+          FROM "Company"
+          WHERE "status" = 'active' AND "employeeCount" IS NOT NULL
+        ) as subquery
         GROUP BY range
         ORDER BY 
           CASE range
